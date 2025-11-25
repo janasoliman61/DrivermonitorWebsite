@@ -29,15 +29,23 @@
     </div>
 
     <script>
-        function handleFormSubmit(event) {
-            event.preventDefault(); 
-            window.location.href = 'first.html';
-        }
+    function handleFormSubmit(event) {
+    event.preventDefault();
 
-        function handleGuestAccess() {
-            window.location.href = 'first.html'; 
-        }
-    </script>
+    const form = event.target;
+    const inputs = form.querySelectorAll("input");
+    const username = inputs[0].value; // first input is username (Sign up) or email (Sign in)
+
+    localStorage.setItem("isGuest", "false");
+    localStorage.setItem("username", username);
+
+    window.location.href = "first.html";
+}
+
+
+</script>
+<script src="script.js"></script>
+
 </body>
 
 </html>
