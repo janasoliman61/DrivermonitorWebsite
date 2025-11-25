@@ -1,8 +1,10 @@
-// Basic camera handling + demo updates for cards + event log
+// BASIC CAMERA + BACKEND COMMUNICATION
 const video = document.getElementById("video");
 let streaming = false;
 let intervalId;
-const backendUrl = "http://localhost:3000/process-frame"; // keep as-is to match earlier backend
+
+// IMPORTANT: send to Node backend, not Python directly
+const backendUrl = "http://localhost:3000/process-frame";
 
 // UI elements
 const drowsyStatus = document.getElementById("drowsyStatus");
@@ -17,35 +19,52 @@ const smokeBar = document.getElementById("smokeBar");
 
 const eventLogBody = document.querySelector("#eventLog tbody");
 
+// Buttons
 document.getElementById("startBtn").addEventListener("click", startCamera);
 document.getElementById("stopBtn").addEventListener("click", stopCamera);
 
-// start camera and begin sending frames
+// EXIT BUTTON → go to sign_in.html
+document.querySelector(".exit-btn").addEventListener("click", () => {
+    stopCamera(); // stop monitoring safely
+    window.location.href = "sign_in.html";
+});
+
+// ---------------------------------------------------------
+// START CAMERA
+// ---------------------------------------------------------
 async function startCamera() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false
+    });
+
     video.srcObject = stream;
     streaming = true;
 
-    // send frames periodically
-    intervalId = setInterval(sendFrame, 500); // every 500 ms
+    // send frames every 500ms
+    intervalId = setInterval(sendFrame, 500);
+
   } catch (err) {
     alert("Camera permission required: " + err.message);
   }
 }
 
-// capture a frame and POST to backend
+// ---------------------------------------------------------
+// CAPTURE FRAME + SEND TO BACKEND
+// ---------------------------------------------------------
 async function sendFrame() {
   if (!streaming || video.videoWidth === 0) return;
 
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
+
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
   const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-  // POST frame to backend (backend should forward to python model server)
   try {
     const resp = await fetch(backendUrl, {
       method: "POST",
@@ -53,39 +72,37 @@ async function sendFrame() {
       body: JSON.stringify({ frame: dataUrl })
     });
 
-    if (!resp.ok) throw new Error("Network response was not ok");
+    if (!resp.ok) throw new Error("Backend error");
 
     const result = await resp.json();
-
-    // expect shape: { drowsiness: "No/Yes/Low", phone: "No/Yes", smoking: "...", drinking: "..." }
     updateStatus(result);
 
   } catch (err) {
-    // If backend is not running, simulate demo values so UI looks correct
+    // fallback simulation if backend offline
     updateStatus(simulate());
-    // console.warn("Frame send error:", err);
   }
 }
 
-// update UI from model output
+// ---------------------------------------------------------
+// UPDATE UI
+// ---------------------------------------------------------
 function updateStatus(payload) {
-  // simple mapping: payload values can be "No"/"Low"/"High" or numeric [0..1]
   const mapVal = (v) => {
-    if (typeof v === "number") return Math.round(v*100);
+    if (typeof v === "number") return Math.round(v * 100);
+
     if (typeof v === "string") {
-      if (v.toLowerCase().includes("no")) return 4;
-      if (v.toLowerCase().includes("low")) return 30;
-      if (v.toLowerCase().includes("medium")) return 55;
-      if (v.toLowerCase().includes("high") || v.toLowerCase().includes("yes")) return 85;
-      const parsed = parseInt(v);
-      if (!isNaN(parsed)) return parsed;
+      const l = v.toLowerCase();
+      if (l.includes("no")) return 4;
+      if (l.includes("low")) return 30;
+      if (l.includes("medium")) return 55;
+      if (l.includes("high") || l.includes("yes")) return 85;
     }
     return 0;
   };
 
   const dVal = mapVal(payload.drowsiness);
   const pVal = mapVal(payload.phone);
-  const drVal = mapVal(payload.drinking || payload.drink || 0);
+  const drVal = mapVal(payload.drinking || payload.drink || "No");
   const sVal = mapVal(payload.smoking);
 
   drowsyStatus.innerText = labelFromValue(dVal);
@@ -98,14 +115,14 @@ function updateStatus(payload) {
   drinkBar.style.width = drVal + "%";
   smokeBar.style.width = sVal + "%";
 
-  // append to event log if severity high
+  // Event log auto-append
   if (dVal >= 70) appendLog("Drowsiness", `DRV${Date.now().toString().slice(-4)}`, "Warning", new Date(), "High");
   if (pVal >= 60) appendLog("Phone usage", `PHN${Date.now().toString().slice(-4)}`, "Warning", new Date(), "Medium");
   if (sVal >= 60) appendLog("Smoking", `SMK${Date.now().toString().slice(-4)}`, "Warning", new Date(), "Medium");
 }
 
-// human label from bar %
-function labelFromValue(n){
+// ---------------------------------------------------------
+function labelFromValue(n) {
   if (n === 0) return "—";
   if (n < 25) return "No";
   if (n < 50) return "Low";
@@ -113,10 +130,12 @@ function labelFromValue(n){
   return "High";
 }
 
-// append row to event log table
+// ---------------------------------------------------------
+// LOG TABLE
+// ---------------------------------------------------------
 function appendLog(eventName, code, type, time, severity) {
-  // limit rows to last 20
   if (!eventLogBody) return;
+
   const tr = document.createElement("tr");
   tr.innerHTML = `
     <td>${eventLogBody.children.length + 1}</td>
@@ -127,13 +146,17 @@ function appendLog(eventName, code, type, time, severity) {
     <td>${severity}</td>
   `;
   eventLogBody.prepend(tr);
-  while(eventLogBody.children.length > 20) eventLogBody.removeChild(eventLogBody.lastChild);
+
+  // keep last 20
+  while (eventLogBody.children.length > 20)
+    eventLogBody.removeChild(eventLogBody.lastChild);
 }
 
-// stop camera
+// ---------------------------------------------------------
 function stopCamera() {
   streaming = false;
   clearInterval(intervalId);
+
   const s = video.srcObject;
   if (s) {
     s.getTracks().forEach(t => t.stop());
@@ -141,7 +164,9 @@ function stopCamera() {
   }
 }
 
-// demo simulate values when backend not reachable
+// ---------------------------------------------------------
+// SIMULATE MODEL WHEN BACKEND OFFLINE
+// ---------------------------------------------------------
 function simulate() {
   return {
     drowsiness: Math.random() > 0.9 ? "High" : (Math.random() > 0.96 ? "Medium" : "No"),

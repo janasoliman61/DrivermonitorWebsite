@@ -12,18 +12,17 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="logo">
-        <!-- reference image used as logo -->
-        <img src="" alt="Drive Guard" />
+        <img src="DriveGuard_Logo_-_Driver_Safety_Emblem-removebg-preview.png" alt="Drive Guard" />
       </div>
 
       <nav class="side-nav">
-        <button class="nav-btn active">Dashboard</button>
+        <a href="first.html"><button class="nav-btn active">Dashboard</button></a>
         <button class="nav-btn">Sessions</button>
-       <a href="about.html" ><button class="nav-btn" href="about.html">About us</button></a>
-        <a href="userguide.html "> <button class="nav-btn">User guide</button> </a>
+        <a href="about.html"><button class="nav-btn">About us</button></a>
+        <a href="userguide.html"><button class="nav-btn">User guide</button></a>
       </nav>
 
-      <div class="sidebar-footer">JS•</div>
+      <div class="sidebar-footer">JS•</div> 
     </aside>
 
     <!-- MAIN -->
@@ -34,11 +33,11 @@
         <div class="search">
           <input placeholder="Search..." />
         </div> -->
+        
 
         <div class="top-actions">
-          <div class="user">Guest</div>
+          <div id="userStatus" class="user">Guest</div>
         </div>
-      </header>
 
       <!-- DASHBOARD GRID -->
       <main class="dashboard">
@@ -46,19 +45,19 @@
         <!-- LEFT: Live Camera card -->
         <section class="panel live-panel">
           <div class="panel-header">
-            <h3>Driveguard</h3>
+            <h3>DriveGuard</h3>
             <div class="panel-actions">
               <button id="liveIndicator" class="live-dot">LIVE</button>
               <button id="alertBtn" class="ghost">+ Alert</button>
             </div>
           </div>
 
-          -- <div class="live-content">
+           <div class="live-content">
             <button class="exit-btn">Exit</button>
             <h2>Driver Monitor</h2>
             <video id="video" autoplay playsinline muted></video>
             <div class="controls">
-              < <button id="startBtn" class="primary">Start Monitoring</button>
+               <button id="startBtn" class="primary">Start Monitoring</button>
               <button id="stopBtn" class="secondary">Stop</button>
             </div>
           </div>
