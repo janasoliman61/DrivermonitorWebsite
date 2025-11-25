@@ -181,23 +181,37 @@ function labelFromValue(n) {
 // ---------------------------------------------------------
 // EVENT LOG
 // ---------------------------------------------------------
+let eventLogArray = [];
+
 function appendLog(eventName, code, type, time, severity) {
-    if (!eventLogBody) return;
+  if (!eventLogBody) return;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-        <td>${eventLogBody.children.length + 1}</td>
-        <td>${eventName}</td>
-        <td>${code}</td>
-        <td>${type}</td>
-        <td>${time.toLocaleTimeString()}</td>
-        <td>${severity}</td>
-    `;
-    eventLogBody.prepend(tr);
+  // Save event to array
+  eventLogArray.push({
+    id: eventLogArray.length + 1,
+    eventName,
+    code,
+    type,
+    time: time.toLocaleTimeString(),
+    severity
+  });
 
-    while (eventLogBody.children.length > 20)
-        eventLogBody.removeChild(eventLogBody.lastChild);
+  // Create row for UI table
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${eventLogArray.length}</td>
+    <td>${eventName}</td>
+    <td>${code}</td>
+    <td>${type}</td>
+    <td>${time.toLocaleTimeString()}</td>
+    <td>${severity}</td>
+  `;
+  eventLogBody.prepend(tr);
+
+  while (eventLogBody.children.length > 20)
+    eventLogBody.removeChild(eventLogBody.lastChild);
 }
+
 
 
 
@@ -227,4 +241,39 @@ function simulate() {
         smoking: Math.random() > 0.98 ? "Yes" : "No",
         drinking: Math.random() > 0.99 ? "Yes" : "No"
     };
+}
+// -------------------------------------------------------
+document.getElementById("downloadReportBtn")?.addEventListener("click", downloadReport);
+
+function downloadReport() {
+  const isGuest = localStorage.getItem("isGuest") === "true";
+  const username = localStorage.getItem("username") || "Unknown User";
+  const userEmail = isGuest ? "Guest (No email)" : username;
+
+  let reportText = `Driver Monitor Report\n\n`;
+  reportText += `User Email: ${userEmail}\n`;
+  reportText += `Generated At: ${new Date().toLocaleString()}\n\n`;
+  reportText += `Recorded Events:\n---------------------------------\n`;
+
+  if (eventLogArray.length === 0) {
+    reportText += "No events recorded.\n";
+  } else {
+    eventLogArray.forEach(ev => {
+      reportText += 
+        `ID: ${ev.id}\n` +
+        `Event: ${ev.eventName}\n` +
+        `Code: ${ev.code}\n` +
+        `Type: ${ev.type}\n` +
+        `Time: ${ev.time}\n` +
+        `Severity: ${ev.severity}\n` +
+        `---------------------------------\n`;
+    });
+  }
+
+  // Create file
+  const blob = new Blob([reportText], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `DriverMonitor_Report_${Date.now()}.txt`;
+  link.click();
 }
