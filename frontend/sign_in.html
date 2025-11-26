@@ -40,6 +40,12 @@
     localStorage.setItem("username", username);
 
     window.location.href = "first.html";
+    
+}
+function handleGuestAccess() {
+    localStorage.setItem("isGuest", "true");
+    localStorage.setItem("username", "Guest");
+    window.location.href = "first.html";
 }
 
 
