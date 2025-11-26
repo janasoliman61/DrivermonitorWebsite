@@ -85,6 +85,9 @@ async function startCamera() {
         video.srcObject = stream;
         streaming = true;
 
+        // SHOW LIVE BUTTON WHEN CAMERA STARTS
+        document.getElementById("liveIndicator").style.display = "inline-block";
+
         intervalId = setInterval(sendFrame, 500);
 
     } catch (err) {
@@ -160,6 +163,17 @@ function updateStatus(payload) {
     drinkBar.style.width = drVal + "%";
     smokeBar.style.width = sVal + "%";
 
+    // SHOW ALERT BUTTON ONLY WHEN A BEHAVIOR IS DETECTED
+    const alertBtn = document.getElementById("alertBtn");
+
+    if (dVal > 25 || pVal > 25 || drVal > 25 || sVal > 25) {
+        alertBtn.style.display = "inline-block";
+    } else {
+        alertBtn.style.display = "none";
+    }
+
+    // Existing event log triggers
+    // -----------------------------------------------------
     if (dVal >= 70) appendLog("Drowsiness", `DRV${Date.now().toString().slice(-4)}`, "Warning", new Date(), "High");
     if (pVal >= 60) appendLog("Phone usage", `PHN${Date.now().toString().slice(-4)}`, "Warning", new Date(), "Medium");
     if (sVal >= 60) appendLog("Smoking", `SMK${Date.now().toString().slice(-4)}`, "Warning", new Date(), "Medium");
@@ -227,6 +241,12 @@ function stopCamera() {
         s.getTracks().forEach(t => t.stop());
         video.srcObject = null;
     }
+
+    // HIDE LIVE BUTTON WHEN CAMERA STOPS
+    document.getElementById("liveIndicator").style.display = "none";
+
+    // ALSO HIDE ALERT BUTTON (reset)
+    document.getElementById("alertBtn").style.display = "none";
 }
 
 
