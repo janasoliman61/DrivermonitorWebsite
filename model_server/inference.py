@@ -18,14 +18,13 @@ CORS(app)
 distraction_model = YOLO("behavior-ultimate2-v8s-100-epochs-best.pt")
 
 # Model 2 drowsiness model (if not ready, skip)
-drowsiness_model_path = "drowsiness-model.pt"
-drowsiness_model = YOLO(drowsiness_model_path) if os.path.exists(drowsiness_model_path) else None
+drowsiness_model = YOLO("drowsiness_classifier.pt") if os.path.exists("drowsiness_classifier.pt") else None
 
-print("\nDistraction model loaded.")
-if drowsiness_model:
-    print("Drowsiness model loaded.")
-else:
-    print("Drowsiness model NOT found. Using default 'No' values.")
+# print("\nDistraction model loaded.")
+# if drowsiness_model:
+#     print("Drowsiness model loaded.")
+# else:
+#     print("Drowsiness model NOT found. Using default 'No' values.")
 
 
 
@@ -65,22 +64,62 @@ def infer():
 
 
     # -----------------------------------------------
-    # 2) RUN DROWSINESS MODEL (if available)
+        # -----------------------------------------------
+    # 2) RUN DROWSINESS MODEL (Classification)
     # -----------------------------------------------
+    drowsiness = "No"  # Default value
+    
     if drowsiness_model:
-        drowsy_results = drowsiness_model(img, imgsz=640, conf=0.45)[0]
-        drowsy_names = drowsy_results.names
-        drowsy_dets = [drowsy_names[int(c)].lower() for c in drowsy_results.boxes.cls]
-
-        # Example → customize (depends on your final model classes):
-        # e.g., class names: ["awake", "eyes_closed", "yawning"]
-        if "eyes_closed" in drowsy_dets or "yawning" in drowsy_dets:
-            drowsiness = "High"
-        else:
+        try:
+            # Run classification model
+            drowsy_results = drowsiness_model(img, imgsz=640)[0]
+            
+            # Get probabilities from classification
+            if hasattr(drowsy_results, 'probs') and drowsy_results.probs is not None:
+                probs = drowsy_results.probs.data.cpu().numpy()
+                names = drowsy_results.names
+                
+                # Print class names to debug
+                print(f"CLASS NAMES: {names}")
+                print(f"DROWSINESS PROBABILITIES:")
+                
+                # Find the drowsy probability
+                drowsy_prob = None
+                
+                for idx, prob in enumerate(probs):
+                    class_name = names[idx]
+                    print(f"   [{idx}] {class_name}: {prob:.2%}")
+                    
+                    # Check if this is the "Drowsy" class (case-insensitive)
+                    if "drowsy" in class_name.lower() and "non" not in class_name.lower():
+                        drowsy_prob = prob
+                
+                # Determine drowsiness level based on probability
+                if drowsy_prob is not None:
+                    print(f"   Drowsy Probability: {drowsy_prob:.2%}")
+                    
+                    if drowsy_prob > 0.7:  # 70%+ drowsy
+                        drowsiness = "High"
+                    elif drowsy_prob > 0.5:  # 50-70% drowsy
+                        drowsiness = "Medium"
+                    elif drowsy_prob > 0.4:  # 40-50% drowsy
+                        drowsiness = "Low"
+                    else:  # < 40% drowsy
+                        drowsiness = "No"
+                    
+                    print(f"   Final Drowsiness Level: {drowsiness}")
+                else:
+                    print("   Could not find 'Drowsy' class in model")
+                    drowsiness = "No"
+            else:
+                print("DROWSINESS: No probs attribute found")
+                drowsiness = "No"
+                
+        except Exception as e:
+            print(f"Drowsiness model error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             drowsiness = "No"
-    else:
-        # Default safe value when drowsiness model not available yet
-        drowsiness = "No"
 
 
 
